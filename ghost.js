@@ -3,7 +3,7 @@
 class Ghost extends Character {
   constructor(cells, className, startPosition) {
     super(cells, className, startPosition);
-    this.delay = 150;
+    this.delay = 1;
   }
 
   getValidMoveIndex() {
@@ -83,7 +83,7 @@ class Ghost extends Character {
 
   caputure() {
     clearTimeout(this.preyId);
-    this.delay = 150;
+    // this.delay = 150;
     this.removeClass("prey");
     this.addClass("deceased");
   }
@@ -95,13 +95,13 @@ class Ghost extends Character {
 
   becomePrey() {
     clearTimeout(this.preyId);
-    this.delay = 250;
+    // this.delay = 250;
     if (!this.cells[this.position].classList.contains("nest"))
       this.addClass("prey");
     this.preyId = setTimeout(() => {
       this.removeClass("prey");
-      this.delay = 150;
-    }, 5000);
+      // this.delay = 150;
+    }, (5000 / 150) * this.delay);
   }
 
   animate() {

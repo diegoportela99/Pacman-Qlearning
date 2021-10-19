@@ -13,7 +13,7 @@ var alphaDecay = 1; // Decay factor of learning rate
 
 var discountFactor = 0.9; // Discount factor
 
-var mode = "play";
+var mode = "learn";
 
 var randomness, decayFactor;
 
@@ -36,7 +36,7 @@ var start = 0;
 var end = 0;
 
 // (UP,LEFT,DOWN,RIGHT)
-var Q = [0, 0, 0, 0];
+var Q = new Object();
 
 var countMoves = 0;
 var moves = [];
@@ -121,6 +121,25 @@ setCells();
 
 const addValue = () => {
   score++;
+  moveSinceScore = 0;
+  state = stateHandler();
+  rewardEst = Q[state];
+  previousReward = Q[previousState];
+
+  if (!previousReward) {
+    previousReward = {};
+  }
+
+  if (previousAction === "U") index = 0;
+  if (previousAction === "L") index = 1;
+  if (previousAction === "D") index = 2;
+  if (previousAction === "R") index = 3;
+
+  previousReward[index] =
+    (1 - alpha) * previousReward[index] +
+    alpha * (scoreReward + discountFactor * Math.max(rewardEst));
+
+  Q[previousState] = previousReward;
 };
 
 const ghosts = [
@@ -134,7 +153,7 @@ function becomeHunter() {
   ghosts.forEach((ghost) => ghost.becomePrey());
 }
 
-const pacman = new Pacman(cells, 490, becomeHunter, addValue);
+const pacman = new Pacman(cells, 490, becomeHunter, handleMovement);
 
 ghosts.forEach((ghost) => ghost.animate());
 
@@ -165,9 +184,19 @@ const gameTimer = setInterval(() => {
 
 function gameOver() {
   topScore = Math.max(topScore, score);
+
+  console.log("Top Score = " + topScore);
+  console.log("Game Count = " + countGame);
+  console.log("Mapped States = " + Object.keys(Q).length);
+  console.log(" --- ");
+
   gameScores.push(score);
   // update Q of previous state (state which lead to gameOver)
   previousReward = Q[previousState];
+
+  if (!previousReward) {
+    previousReward = {};
+  }
 
   if (previousAction === null) index = 0;
   if (previousAction === "U") index = 0;
@@ -201,6 +230,8 @@ function gameOver() {
   countGame += 1;
 
   score = 0;
+  countMoves = 0;
+  moveSinceScore = 0;
   pacman.position = pacman.startPosition;
   ghosts.forEach((ghost) => ghost.stop());
   resetCells();
@@ -209,16 +240,183 @@ function gameOver() {
 }
 
 // input (raw game state) (cells)
-// Returns state as -> 5x5 matrix value from pacman center
-function stateHandler(currentCells) {
-  return [];
+// Returns state as -> 7x7 matrix value from pacman center
+function stateHandler() {
+  currstate = [];
+  for (let i = -3; i < 4; i++) {
+    for (let j = -3; j < 4; j++) {
+      if (cells[pacman.position - i - width * j]) {
+        currstate.push(cells[pacman.position - i - width * j].className);
+      } else {
+        currstate.push("bounds");
+      }
+    }
+  }
+  return currstate;
+}
+
+function choose(choices) {
+  var index = Math.floor(Math.random() * choices.length);
+  return choices[index];
+}
+
+function randomnessChoose() {
+  var randomNumber = Math.random();
+  if (randomNumber <= randomness) {
+    return true;
+  }
+  return false;
 }
 
 // Implements the QLearning algorithm, returns an action given a state
 function QLearning() {
-  action = ["left", "up", "right", "down"];
-  return action[0];
+  var state = stateHandler();
+  var rewardEst = Q[state];
+
+  var previousReward = Q[previousState];
+
+  if (!previousReward) {
+    previousReward = {};
+  }
+
+  index = 0;
+  if (previousAction === "U") index = 0;
+  if (previousAction === "L") index = 1;
+  if (previousAction === "D") index = 2;
+  if (previousAction === "R") index = 3;
+
+  var reward = (0 - moveSinceScore) / 60;
+
+  if (rewardEst) {
+    var highestVal = Math.max.apply(null, Object.values(rewardEst)),
+      val = Object.keys(rewardEst).find(function (a) {
+        return rewardEst[a] === highestVal;
+      });
+  } else {
+    rewardEst = 0;
+  }
+
+  if (!highestVal) {
+    highestVal = 0;
+  }
+
+  if (!previousReward[index]) {
+    previousReward[index] = alpha * (reward + discountFactor);
+  } else {
+    previousReward[index] =
+      (1 - alpha) * previousReward[index] +
+      alpha * (reward + discountFactor * highestVal);
+  }
+
+  Q[previousState] = previousReward;
+  previousState = state;
+
+  basedOnQ = randomnessChoose();
+
+  if (basedOnQ === false) {
+    choice = choose(["U", "L", "D", "R"]);
+    previousAction = choice;
+    return choice;
+  } else {
+    if (
+      rewardEst[0] > rewardEst[1] &&
+      rewardEst[0] > rewardEst[2] &&
+      rewardEst[0] > rewardEst[3]
+    ) {
+      previousAction = "U";
+      return "U";
+    }
+    if (
+      rewardEst[1] > rewardEst[0] &&
+      rewardEst[1] > rewardEst[2] &&
+      rewardEst[1] > rewardEst[3]
+    ) {
+      previousAction = "L";
+      return "L";
+    }
+    if (
+      rewardEst[2] > rewardEst[0] &&
+      rewardEst[2] > rewardEst[1] &&
+      rewardEst[2] > rewardEst[3]
+    ) {
+      previousAction = "D";
+      return "D";
+    }
+    if (
+      rewardEst[3] > rewardEst[0] &&
+      rewardEst[3] > rewardEst[1] &&
+      rewardEst[3] > rewardEst[2]
+    ) {
+      previousAction = "R";
+      return "R";
+    } else {
+      choice = choose(["U", "L", "D", "R"]);
+      previousAction = choice;
+      return choice;
+    }
+  }
 }
+
+function handleMovement(e) {
+  if (this.cells.gameOver) return false;
+  let nextIndex = this.position;
+  switch (e) {
+    case "L":
+      nextIndex += -1;
+      break;
+    case "U":
+      nextIndex += -this.gridWidth;
+      break;
+    case "R":
+      nextIndex += 1;
+      break;
+    case "D":
+      nextIndex += this.gridWidth;
+      break;
+  }
+
+  if (this.cells[nextIndex].classList.contains("big-food")) this.becomeHunter();
+  if (this.cells[nextIndex].className.includes("food", "big-food")) {
+    addValue();
+  }
+  this.cells[nextIndex].classList.remove("food", "big-food");
+  this.move(nextIndex);
+}
+
+var delay = 1;
+
+function playGame() {
+  move_direction = QLearning();
+
+  if (move_direction === "U") {
+    countMoves += 1;
+    moves.push(countMoves);
+    moveSinceScore += 1;
+  }
+  if (move_direction === "D") {
+    countMoves += 1;
+    moves.push(countMoves);
+    moveSinceScore += 1;
+  }
+  if (move_direction === "L") {
+    countMoves += 1;
+    moves.push(countMoves);
+    moveSinceScore += 1;
+  }
+  if (move_direction === "R") {
+    countMoves += 1;
+    moves.push(countMoves);
+    moveSinceScore += 1;
+  }
+
+  pacman.handleMovement(move_direction);
+
+  this.pacmanId = setTimeout(() => {
+    this.playGame();
+  }, this.delay);
+}
+
+playGame();
 
 // Saves data as a pickle file for future use
 function saveLearning() {}
