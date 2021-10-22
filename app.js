@@ -2,6 +2,10 @@
 
 // Movement of game set as - 150 ms
 
+var delay = 1;
+
+var matrixSize = 3;
+
 // Q learning Params
 
 var aliveReward = -1;
@@ -13,7 +17,7 @@ var alphaDecay = 1; // Decay factor of learning rate
 
 var discountFactor = 0.9; // Discount factor
 
-var mode = "learn";
+var mode = "play";
 
 var randomness, decayFactor;
 
@@ -21,7 +25,7 @@ if (mode === "play") {
   randomness = 0.0001;
   decayFactor = 1;
 } else {
-  randomness = 0.6;
+  randomness = 0.8;
   decayFactor = 3;
 }
 
@@ -35,8 +39,13 @@ var gameScores = [];
 var start = 0;
 var end = 0;
 
-// (UP,LEFT,DOWN,RIGHT)
 var Q = new Object();
+
+if (localStorage.getItem("Qlearn")) {
+  var Q = JSON.parse(localStorage.getItem("Qlearn"));
+}
+
+// Find stored Q learning
 
 var countMoves = 0;
 var moves = [];
@@ -144,9 +153,9 @@ const addValue = () => {
 
 const ghosts = [
   new Ghost(cells, "ghost orange", 348, gameOver),
-  new Ghost(cells, "ghost red", 376, gameOver),
-  new Ghost(cells, "ghost cyan", 351, gameOver),
-  new Ghost(cells, "ghost pink", 379, gameOver),
+  // new Ghost(cells, "ghost red", 376, gameOver),
+  // new Ghost(cells, "ghost cyan", 351, gameOver),
+  // new Ghost(cells, "ghost pink", 379, gameOver),
 ];
 
 function becomeHunter() {
@@ -228,6 +237,7 @@ function gameOver() {
   }
 
   countGame += 1;
+  localStorage.setItem("Qlearn", JSON.stringify(Q));
 
   score = 0;
   countMoves = 0;
@@ -240,13 +250,14 @@ function gameOver() {
 }
 
 // input (raw game state) (cells)
-// Returns state as -> 7x7 matrix value from pacman center
+// Returns state as -> nxn matrix value from pacman center
 function stateHandler() {
   currstate = [];
-  for (let i = -3; i < 4; i++) {
-    for (let j = -3; j < 4; j++) {
+  for (let i = -matrixSize - 1; i < Math.abs(matrixSize); i++) {
+    for (let j = -matrixSize - 1; j < Math.abs(matrixSize); j++) {
       if (cells[pacman.position - i - width * j]) {
         currstate.push(cells[pacman.position - i - width * j].className);
+        // cells[pacman.position - i - width * j].className = "pacman";
       } else {
         currstate.push("bounds");
       }
@@ -382,8 +393,6 @@ function handleMovement(e) {
   this.cells[nextIndex].classList.remove("food", "big-food");
   this.move(nextIndex);
 }
-
-var delay = 1;
 
 function playGame() {
   move_direction = QLearning();
