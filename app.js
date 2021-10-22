@@ -2,9 +2,9 @@
 
 // Movement of game set as - 150 ms
 
-var delay = 1;
+var delay = 150;
 
-var matrixSize = 3;
+var matrixSize = 1;
 
 // Q learning Params
 
@@ -17,7 +17,7 @@ var alphaDecay = 1; // Decay factor of learning rate
 
 var discountFactor = 0.9; // Discount factor
 
-var mode = "play";
+var mode = "train";
 
 var randomness, decayFactor;
 
@@ -253,8 +253,8 @@ function gameOver() {
 // Returns state as -> nxn matrix value from pacman center
 function stateHandler() {
   currstate = [];
-  for (let i = -matrixSize - 1; i < Math.abs(matrixSize); i++) {
-    for (let j = -matrixSize - 1; j < Math.abs(matrixSize); j++) {
+  for (let i = -matrixSize; i < Math.abs(matrixSize) + 1; i++) {
+    for (let j = -matrixSize; j < Math.abs(matrixSize) + 1; j++) {
       if (cells[pacman.position - i - width * j]) {
         currstate.push(cells[pacman.position - i - width * j].className);
         // cells[pacman.position - i - width * j].className = "pacman";

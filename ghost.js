@@ -3,7 +3,7 @@
 class Ghost extends Character {
   constructor(cells, className, startPosition) {
     super(cells, className, startPosition);
-    this.delay = 1;
+    this.delay = 150;
   }
 
   getValidMoveIndex() {
