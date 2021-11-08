@@ -2,7 +2,7 @@
 
 // Movement of game set as - 150 ms
 
-var delay = 150;
+var delay = 0;
 
 var matrixSize = 1;
 
@@ -17,7 +17,7 @@ var alphaDecay = 1; // Decay factor of learning rate
 
 var discountFactor = 0.9; // Discount factor
 
-var mode = "train";
+var mode = "play";
 
 var randomness, decayFactor;
 
@@ -52,17 +52,23 @@ var moves = [];
 var moveSinceScore = 0;
 
 // // Function to save data to a file
-// function download(content, fileName, contentType) {
-//   var a = document.createElement("a");
-//   var file = new Blob([content], { type: contentType });
-//   a.href = URL.createObjectURL(file);
-//   a.download = fileName;
-//   a.click();
-// }
+function download(content, fileName, contentType) {
+  var a = document.createElement("a");
+  var file = new Blob([content], { type: contentType });
+  a.href = URL.createObjectURL(file);
+  a.download = fileName;
+  a.click();
+}
 // download(jsonData, "json.txt", "text/plain");
 
 // ---
-
+const gameScoreData = {
+  gameCount: [],
+  topScore: [],
+  mappedStates: []
+};
+const isRecordResults = false;
+const numGamesTest = [1, 10, 20, 50, 100];
 let topScore = 0;
 let score = 0;
 
@@ -101,6 +107,14 @@ const walls = [
   0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
   1, 1, 1, 1,
 ];
+console.log("l", walls.length);
+
+let maxTotalScore = 0;
+
+for (let reward in walls) maxTotalScore += reward;
+
+print("Max score", maxTotalScore);
+
 const cells = [];
 
 const legend = ["food", "wall", "nest", "big-food"];
@@ -198,6 +212,30 @@ function gameOver() {
   console.log("Game Count = " + countGame);
   console.log("Mapped States = " + Object.keys(Q).length);
   console.log(" --- ");
+
+  if (isRecordResults) {
+    // append the number of games played, the top score of the current game and the number of mapped states
+    // to the arrays in the gameScoreData object
+    gameScoreData.gameCount.push(countGame+1);
+    gameScoreData.topScore.push(topScore);
+    gameScoreData.mappedStates.push(Object.keys(Q).length);
+
+    let index = 0;
+
+    // if the game count equals on of the game count limits then a json file of the game results are downloaded
+    for (let numGames of numGamesTest) {
+      if (numGames - 1 === countGame) {
+        download(JSON.stringify(gameScoreData, null, 2), `results-${countGame+1}-games`, "application/json");
+
+        // removes the limit as it has already been reached so it is redundant to check it again
+        numGamesTest.splice(index, 1);
+
+        break;
+      }
+
+      index++;
+    }
+  }
 
   gameScores.push(score);
   // update Q of previous state (state which lead to gameOver)
