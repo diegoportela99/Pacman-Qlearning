@@ -107,13 +107,22 @@ const walls = [
   0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
   1, 1, 1, 1,
 ];
+
+const aislePositions = [];
+
+for (let i in walls) {
+  if (walls[i] !== 1) {
+    aislePositions.push(i);
+  }
+}
+
 console.log("l", walls.length);
 
 let maxTotalScore = 0;
 
 for (let reward in walls) maxTotalScore += reward;
 
-print("Max score", maxTotalScore);
+console.log("Max score", maxTotalScore);
 
 const cells = [];
 
@@ -164,6 +173,12 @@ const addValue = () => {
 
   Q[previousState] = previousReward;
 };
+
+function getRandomInt(min, max) {
+  min = Math.ceil(min);
+  max = Math.floor(max);
+  return Math.floor(Math.random() * (max - min + 1)) + min;
+}
 
 const ghosts = [
   new Ghost(cells, "ghost orange", 348, gameOver),
@@ -280,7 +295,7 @@ function gameOver() {
   score = 0;
   countMoves = 0;
   moveSinceScore = 0;
-  pacman.position = pacman.startPosition;
+  pacman.position = aislePositions[getRandomInt(0, aislePositions.length-1)];
   ghosts.forEach((ghost) => ghost.stop());
   resetCells();
   gameIsOver = false;
